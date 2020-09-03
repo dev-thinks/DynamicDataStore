@@ -1,4 +1,9 @@
-﻿using System;
+﻿using DynamicDataStore.Core.Db;
+using DynamicDataStore.Core.Model;
+using DynamicDataStore.Core.Util;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.ComponentModel.DataAnnotations.Schema;
@@ -6,10 +11,6 @@ using System.Linq;
 using System.Reflection;
 using System.Reflection.Emit;
 using System.Runtime.Serialization;
-using DynamicDataStore.Core.Db;
-using DynamicDataStore.Core.Model;
-using DynamicDataStore.Core.Util;
-using Microsoft.EntityFrameworkCore;
 
 namespace DynamicDataStore.Core.Runtime
 {
@@ -22,21 +23,25 @@ namespace DynamicDataStore.Core.Runtime
         public TypeBuilder ContextTypeBuilder { get; set; }
 
         private readonly Config _config;
+        private readonly ILogger _logger;
 
         private readonly DynamicTypeBuilder _typeBuilder;
 
-        public DynamicClassBuilder(Config config)
+        public DynamicClassBuilder(Config config, ILogger logger)
         {
             Types = new Dictionary<string, Type>();
             TypeBuilders = new Dictionary<string, TypeBuilder>();
             _config = config;
-            _typeBuilder = new DynamicTypeBuilder();
+            _logger = logger;
+            _typeBuilder = new DynamicTypeBuilder(_logger);
         }
 
         public Type CreateContextType(List<Table> tables, string cString)
         {
             Types.Clear();
             TypeBuilders.Clear();
+
+            _logger.LogTrace("Start building runtime DynamicDbContext");
 
             //Context
             ContextTypeBuilder = _typeBuilder.GetTypeBuilder("DynamicDbContext", typeof(DbContextBase));
@@ -53,11 +58,15 @@ namespace DynamicDataStore.Core.Runtime
                 TypeBuilders.Add(table.VariableName, CreatePocoTypeBuilder(table));
             }
 
+            _logger.LogTrace("Start building navigation properties");
+
             //Navigation properties
             foreach (Table table in tables)
             {
                 CreateNavigationProperties(table);
             }
+
+            _logger.LogTrace("Start building Dbset for each table");
 
             //Creates DbSet Properties for the Context
             foreach (Table ti in tables)
@@ -70,6 +79,8 @@ namespace DynamicDataStore.Core.Runtime
                     typeof(DbSet<>).MakeGenericType(new Type[] {pocoType}), false);
             }
 
+            _logger.LogTrace("Start building OnConfiguring override method.");
+
             // context OnConfiguring method override.
             var onConfiguringMethod = ContextTypeBuilder.OverrideOnConfiguring(cString);
             ContextTypeBuilder.DefineMethodOverride(onConfiguringMethod,
@@ -79,8 +90,12 @@ namespace DynamicDataStore.Core.Runtime
 
             if (_config.SaveLibraryRunTime)
             {
+                _logger.LogTrace("Try saving the created DbContext into the disk.");
+
                 _typeBuilder.SaveTypeBuilder(ContextTypeBuilder, "DynamicDataStore");
             }
+
+            _logger.LogTrace("Done building Dynamic DbContext.");
 
             return type;
         }

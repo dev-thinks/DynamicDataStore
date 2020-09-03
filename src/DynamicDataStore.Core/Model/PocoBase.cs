@@ -18,7 +18,13 @@ namespace DynamicDataStore.Core.Model
             }
             else
             {
-                string[] s = propertyInfo.ConvertAll(o => $"{o.Name}={o.GetValue(this, null).ToString()}").ToArray();
+                string[] s = propertyInfo.ConvertAll(o =>
+                {
+                    var propValue = o.GetValue(this, null)?? "";
+
+                    return $"{o.Name}={propValue.ToString()}";
+
+                }).ToArray();
 
                 return string.Join(",", s);
             }

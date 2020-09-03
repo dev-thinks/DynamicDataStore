@@ -1,9 +1,9 @@
-﻿using System.Collections;
+﻿using Microsoft.EntityFrameworkCore;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using System.Reflection.Emit;
-using Microsoft.EntityFrameworkCore;
 
 namespace DynamicDataStore.Core.Util
 {

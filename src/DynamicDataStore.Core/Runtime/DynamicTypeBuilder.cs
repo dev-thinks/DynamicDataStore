@@ -1,17 +1,24 @@
-﻿using System;
+﻿using DynamicDataStore.Core.Model;
+using Lokad.ILPack;
+using Microsoft.Extensions.Logging;
+using System;
 using System.ComponentModel;
 using System.IO;
 using System.Reflection;
 using System.Reflection.Emit;
-using DynamicDataStore.Core.Model;
-using Lokad.ILPack;
 
 namespace DynamicDataStore.Core.Runtime
 {
     public class DynamicTypeBuilder
     {
+        private readonly ILogger _logger;
         private AssemblyBuilder _assemblyBuilder;
         private ModuleBuilder _moduleBuilder;
+
+        public DynamicTypeBuilder(ILogger logger)
+        {
+            _logger = logger;
+        }
 
         public TypeBuilder GetTypeBuilder(string typeName, Type baseType, Type genericType = null)
         {
@@ -40,17 +47,30 @@ namespace DynamicDataStore.Core.Runtime
 
         public void SaveTypeBuilder(TypeBuilder parentType, string fileName)
         {
-            var basePath = Path.Combine(Directory.GetCurrentDirectory(), $"generated");
-
-            if (!Directory.Exists(basePath))
+            try
             {
-                Directory.CreateDirectory(basePath);
+                var basePath = Path.Combine(Directory.GetCurrentDirectory(), $"generated");
+
+                if (!Directory.Exists(basePath))
+                {
+                    Directory.CreateDirectory(basePath);
+                }
+
+                fileName = $"{fileName}_{DateTime.Now:MMddyyyyhhmmss}";
+
+                var generator = new AssemblyGenerator();
+                generator.GenerateAssembly(_assemblyBuilder, Path.Combine($"{basePath}\\{fileName}.dll"));
             }
-
-            fileName = $"{fileName}_{DateTime.Now:MMddyyyyhhmmss}";
-
-            var generator = new AssemblyGenerator();
-            generator.GenerateAssembly(_assemblyBuilder, Path.Combine($"{basePath}\\{fileName}.dll"));
+            catch (PlatformNotSupportedException ex)
+            {
+                // log and gracefully handled
+                _logger.LogError(ex, "Current platform not supported to save dynamic code generation at runtime.");
+            }
+            catch (Exception e)
+            {
+                // log and gracefully handled
+                _logger.LogError(e, "Error while saving dynamic context into disk.");
+            }
         }
 
         public PropertyBuilder CreateProperty(TypeBuilder builder, string propertyName, Type propertyType,

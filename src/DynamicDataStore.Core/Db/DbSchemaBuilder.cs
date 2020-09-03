@@ -1,30 +1,33 @@
-﻿using System;
+﻿using DynamicDataStore.Core.Model;
+using Microsoft.Data.SqlClient;
+using Microsoft.Extensions.Logging;
+using System;
 using System.Collections.Generic;
 using System.Data;
-using DynamicDataStore.Core.Model;
-using Microsoft.Data.SqlClient;
 
 namespace DynamicDataStore.Core.Db
 {
     public class DbSchemaBuilder
     {
+        private readonly ILogger _logger;
         private readonly Config _config;
 
-        public List<Table> Tables = new List<Table>();
+        public readonly List<Table> Tables = new List<Table>();
 
-        //private List<Column> Columns = new List<Column>();
-
-        public DbSchemaBuilder(Config config)
+        public DbSchemaBuilder(Config config, ILogger logger)
         {
+            _logger = logger;
+            _config = config;
+
             try
             {
-                _config = config;
-
                 GetColumns();
+
+                _logger.LogTrace("List of tables fetched from database: {@Count}", Tables);
             }
             catch (Exception exp)
             {
-                Console.WriteLine(exp);
+                _logger.LogError(exp, "Error while getting dynamic tables from database with config: {@Configuration}", _config);
 
                 throw;
             }
@@ -47,13 +50,18 @@ namespace DynamicDataStore.Core.Db
 " : "";
                 if (_config.FilterSchemas.Count > 0)
                 {
-                    filter = $"and schema_name(t.schema_id) in ({string.Join(",", _config.FilterSchemas.ToArray())})";
+                    _logger.LogTrace("Filtering for list of schemas provided: {@Schemas}", _config.FilterSchemas);
 
-                    if (_config.IncludedTables.Count > 0)
-                    {
-                        filter = $"{filter} or t.name in ({string.Join(",", _config.IncludedTables.ToArray())})";
-                    }
+                    filter = $"and schema_name(t.schema_id) in ({string.Join(",", _config.FilterSchemas.ToArray())})";
                 }
+
+                if (_config.IncludedTables.Count > 0)
+                {
+                    filter = $"{filter} or t.name in ({string.Join(",", _config.IncludedTables.ToArray())})";
+
+                    _logger.LogTrace("Filtering for list of tables provided: {@Tables}", _config.IncludedTables);
+                }
+
 
                 string sqlQuery =
     @"select
@@ -167,7 +175,7 @@ order by TableSchema, TableName";
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine(ex);
+                    _logger.LogError(ex, "Error while getting tables and columns from database");
 
                     throw;
                 }
@@ -178,7 +186,7 @@ order by TableSchema, TableName";
             }
             catch (Exception exp)
             {
-                Console.WriteLine(exp);
+                _logger.LogError(exp, "Error while getting dynamic tables from database");
 
                 throw;
             }

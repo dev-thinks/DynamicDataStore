@@ -1,5 +1,5 @@
-﻿using System;
-using DynamicDataStore.Core.Model;
+﻿using DynamicDataStore.Core.Model;
+using System;
 
 namespace DynamicDataStore.Core.Util
 {

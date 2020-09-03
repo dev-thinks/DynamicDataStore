@@ -1,11 +1,12 @@
-﻿using System;
+﻿using DynamicDataStore.Core.Model;
+using DynamicDataStore.Core.Runtime;
+using DynamicDataStore.Core.Util;
+using Microsoft.Extensions.Logging;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
 using System.Linq.Dynamic.Core;
-using DynamicDataStore.Core.Model;
-using DynamicDataStore.Core.Runtime;
-using DynamicDataStore.Core.Util;
 
 namespace DynamicDataStore.Core.Db
 {
@@ -15,32 +16,26 @@ namespace DynamicDataStore.Core.Db
     {
         public event FinishedLoading OnFinishedLoading;
 
-        private BackgroundWorker bg = new BackgroundWorker();
-
-        public DbSchemaBuilder DbSchemaBuilder { get; set; }
-
-        public DynamicClassBuilder DynamicClassBuilder { get; set; }
-
         public dynamic Instance { get; set; }
 
-        public Config Config { get; set; }
+        private BackgroundWorker bg = new BackgroundWorker();
+
+        private DbSchemaBuilder DbSchemaBuilder { get; set; }
+
+        private readonly Config _config;
+        private readonly ILogger _logger;
 
         public bool IsActive { get; set; }
 
-        public Type ContextType { get; set; }
-
-        public DbAdapter(string connectionString, bool extendedProperties = false)
+        public DbAdapter(Config configuration, ILogger logger)
         {
-            Config = new Config();
-            Config.ConnectionString = connectionString;
-            Config.ExtendedProperties = extendedProperties;
-            Config.SaveLibraryRunTime = true;
-            Config.FilterSchemas = new List<string> {"'T'", "'C'"};
+            _config = configuration;
+            _logger = logger;
         }
 
         public void Load()
         {
-            if (Config.Asynchronized)
+            if (_config.Asynchronized)
             {
                 bg.DoWork += bg_DoWork;
                 bg.RunWorkerCompleted += bg_RunWorkerCompleted;
@@ -63,23 +58,33 @@ namespace DynamicDataStore.Core.Db
         {
             try
             {
-                DbSchemaBuilder = new DbSchemaBuilder(Config);
-                DynamicClassBuilder = new DynamicClassBuilder(Config);
+                _logger.LogTrace("Start fetching tables and properties with config: {@Configuration}.", _config);
 
-                ContextType = DynamicClassBuilder.CreateContextType(DbSchemaBuilder.Tables, Config.ConnectionString);
+                DbSchemaBuilder = new DbSchemaBuilder(_config, _logger);
 
-                Instance = (DbContextBase)Activator.CreateInstance(ContextType);
+                DynamicClassBuilder dynamicClassBuilder = new DynamicClassBuilder(_config, _logger);
+
+                Type contextType = dynamicClassBuilder.CreateContextType(DbSchemaBuilder.Tables, _config.ConnectionString);
+
+                Instance = (DbContextBase)Activator.CreateInstance(contextType);
 
                 IsActive = true;
+
+                _logger.LogTrace("Dynamic data store is ready. Entity count: {Count}", DbSchemaBuilder.Tables.Count);
             }
             catch (Exception exp)
             {
-                Console.WriteLine(exp);
+                _logger.LogError(exp, "Error while adapting the dynamic entities.");
 
                 IsActive = false;
 
                 throw;
             }
+        }
+
+        public List<Table> GetDynamicEntities()
+        {
+            return DbSchemaBuilder.Tables.ToList();
         }
 
         public dynamic GetAll(string tableName)
@@ -138,7 +143,7 @@ namespace DynamicDataStore.Core.Db
             {
                 Type type = Utils.GetPropertyType(masterObject, connectorField);
                 obj = Activator.CreateInstance(type);
-                Utils.SetPropertyValue(masterObject, connectorField + Config.CollectionPostfixName, obj);
+                Utils.SetPropertyValue(masterObject, connectorField + _config.CollectionPostfixName, obj);
             }
 
             obj.Add(detailObject);
