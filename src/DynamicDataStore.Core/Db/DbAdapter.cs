@@ -58,19 +58,7 @@ namespace DynamicDataStore.Core.Db
         {
             try
             {
-                _logger.LogTrace("Start fetching tables and properties with config: {@Configuration}.", _config);
-
-                DbSchemaBuilder = new DbSchemaBuilder(_config, _logger);
-
-                DynamicClassBuilder dynamicClassBuilder = new DynamicClassBuilder(_config, _logger);
-
-                Type contextType = dynamicClassBuilder.CreateContextType(DbSchemaBuilder.Tables, _config.ConnectionString);
-
-                Instance = (DbContextBase)Activator.CreateInstance(contextType);
-
-                IsActive = true;
-
-                _logger.LogTrace("Dynamic data store is ready. Entity count: {Count}", DbSchemaBuilder.Tables.Count);
+                IsActive = RefreshEntity(false);
             }
             catch (Exception exp)
             {
@@ -80,6 +68,23 @@ namespace DynamicDataStore.Core.Db
 
                 throw;
             }
+        }
+
+        public bool RefreshEntity(bool isReload = true)
+        {
+            _logger.LogTrace(isReload ? "REFRESH: " : "" + "Start fetching tables and properties with config: {@Configuration}.", _config);
+
+            DbSchemaBuilder = new DbSchemaBuilder(_config, _logger);
+
+            DynamicClassBuilder dynamicClassBuilder = new DynamicClassBuilder(_config, _logger);
+
+            Type contextType = dynamicClassBuilder.CreateContextType(DbSchemaBuilder.Tables, _config.ConnectionString);
+
+            Instance = (DbContextBase)Activator.CreateInstance(contextType);
+
+            _logger.LogTrace(isReload ? "REFRESH: " : "" + "Dynamic data store is ready. Entity count: {Count}", DbSchemaBuilder.Tables.Count);
+
+            return true;
         }
 
         public List<Table> GetDynamicEntities()

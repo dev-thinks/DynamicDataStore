@@ -73,6 +73,33 @@ namespace DynamicDataStore.Core.Test
 
                     Logger.LogTrace("Filtered table: {Table} Predicate: {Predicate} Result: {@FilterTable}", tableName,
                         predicate, filtered);
+
+
+                    var newEmailType = _dbAdapter.New(tableName);
+
+                    newEmailType.Name = "Unit Test Case";
+                    newEmailType.Code = "UNIT_TEST_CASE";
+                    newEmailType.MaxRetryCount = 1;
+                    newEmailType.RowStatusTypeId = 0;
+                    newEmailType.CreatedBy = 2;
+
+                    _dbAdapter.Add(newEmailType);
+
+                    _dbAdapter.Save();
+
+                    var isRefreshed = _dbAdapter.RefreshEntity();
+
+                    if (isRefreshed)
+                    {
+                        // new data after changes
+                        predicate = "s=>s.Code == \"UNIT_TEST_CASE\"";
+
+                        var filtered2 = _dbAdapter.GetBy(tableName, predicate);
+
+                        Logger.LogTrace("Filtered table after refresh: {Table} Predicate: {Predicate} Result: {@FilterTable}",
+                            tableName,
+                            predicate, filtered2);
+                    }
                 }
             }
             else
