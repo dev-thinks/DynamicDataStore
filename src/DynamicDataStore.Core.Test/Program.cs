@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Linq;
 using System.Text.Json;
 using DynamicDataStore.Core.Db;
 
@@ -31,8 +32,8 @@ namespace DynamicDataStore.Core.Test
         {
             if (_dbAdapter.IsActive)
             {
-                //var lstTables = _dbAdapter.DbSchemaBuilder.Tables.ToList();
-                //lstTables.ForEach(s => Console.WriteLine($"{s.Schema}.{s.Name}"));
+                var lstTables = _dbAdapter.DbSchemaBuilder.Tables.ToList();
+                lstTables.ForEach(s => Console.WriteLine($"{s.Schema}.{s.Name}"));
 
                 if (_dbAdapter != null)
                 {

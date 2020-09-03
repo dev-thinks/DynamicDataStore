@@ -35,6 +35,7 @@ namespace DynamicDataStore.Core.Db
             Config.ConnectionString = connectionString;
             Config.ExtendedProperties = extendedProperties;
             Config.SaveLibraryRunTime = true;
+            Config.FilterSchemas = new List<string> {"'T'", "'C'"};
         }
 
         public void Load()
