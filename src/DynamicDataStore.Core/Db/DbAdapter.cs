@@ -72,7 +72,8 @@ namespace DynamicDataStore.Core.Db
 
         public bool RefreshEntity(bool isReload = true)
         {
-            _logger.LogTrace(isReload ? "REFRESH: " : "" + "Start fetching tables and properties with config: {@Configuration}.", _config);
+            _logger.LogTrace("[{IsRefresh}] Start fetching tables and properties with config {@Configuration}.",
+                isReload ? "REFRESH" : "INITIAL", _config);
 
             DbSchemaBuilder = new DbSchemaBuilder(_config, _logger);
 
@@ -82,7 +83,8 @@ namespace DynamicDataStore.Core.Db
 
             Instance = (DbContextBase)Activator.CreateInstance(contextType);
 
-            _logger.LogTrace(isReload ? "REFRESH: " : "" + "Dynamic data store is ready. Entity count: {Count}", DbSchemaBuilder.Tables.Count);
+            _logger.LogTrace("[{IsRefresh}] Dynamic data store is ready. Entity count: {Count}",
+                isReload ? "REFRESH" : "INITIAL", DbSchemaBuilder.Tables.Count);
 
             return true;
         }
