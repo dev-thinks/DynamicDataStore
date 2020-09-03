@@ -4,6 +4,7 @@ using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
 using System.Data;
+using System.Linq;
 
 namespace DynamicDataStore.Core.Db
 {
@@ -23,11 +24,13 @@ namespace DynamicDataStore.Core.Db
             {
                 GetColumns();
 
-                _logger.LogTrace("List of tables fetched from database: {@Count}", Tables);
+                _logger.LogTrace("List of tables fetched from database: {@Count}",
+                    Tables.Select(s => $"{s.Schema}.{s.Name}"));
             }
             catch (Exception exp)
             {
-                _logger.LogError(exp, "Error while getting dynamic tables from database with config: {@Configuration}", _config);
+                _logger.LogError(exp, "Error while getting dynamic tables from database with config: {@Configuration}",
+                    _config);
 
                 throw;
             }

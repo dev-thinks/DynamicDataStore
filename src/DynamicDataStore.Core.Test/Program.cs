@@ -1,8 +1,10 @@
 ﻿using DynamicDataStore.Core.Db;
 using DynamicDataStore.Core.Model;
 using Microsoft.Extensions.Logging;
+using Serilog;
 using System.Collections.Generic;
 using System.Text.Json;
+using ILogger = Microsoft.Extensions.Logging.ILogger;
 
 namespace DynamicDataStore.Core.Test
 {
@@ -19,14 +21,16 @@ namespace DynamicDataStore.Core.Test
         {
             get
             {
+                Log.Logger = new LoggerConfiguration()
+                    .MinimumLevel.Verbose()
+                    .WriteTo.Console()
+                    .CreateLogger();
+
                 var loggerFactory = LoggerFactory.Create(builder =>
-                    {
-                        builder.SetMinimumLevel(LogLevel.Trace)
-                            .AddConsole(options =>
-                            {
-                                options.TimestampFormat = "[HH:mm:ss]";
-                            });
-                    });
+                {
+                    builder.ClearProviders();
+                    builder.AddSerilog();
+                });
 
                 return loggerFactory.CreateLogger("TestApp");
             }
@@ -60,13 +64,15 @@ namespace DynamicDataStore.Core.Test
         {
             if (_dbAdapter.IsActive)
             {
-                //var lstTables = _dbAdapter.GetDynamicEntities();
-
                 if (_dbAdapter != null)
                 {
-                    var filtered = _dbAdapter.GetBy("T_EmailType", "s=>s.Code == \"NEW_REG_EMAIL\"");
+                    var tableName = "T_EmailType";
+                    var predicate = "s=>s.Code == \"NEW_REG_EMAIL\"";
 
-                    Logger.LogTrace("Filtered record: {@FilterTable}", filtered);
+                    var filtered = _dbAdapter.GetBy(tableName, predicate);
+
+                    Logger.LogTrace("Filtered table: {Table} Predicate: {Predicate} Result: {@FilterTable}", tableName,
+                        predicate, filtered);
                 }
             }
             else
