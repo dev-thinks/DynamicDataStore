@@ -38,27 +38,11 @@ namespace DynamicDataStore.Core.Util
                 .Where(m => m.GetParameters().Select(p => p.ParameterType).Contains(typeof(DbContextOptionsBuilder)))
                 .Single(m => m.GetParameters().Select(p => p.ParameterType).Contains(typeof(string)));
 
-            var enableSensitiveLogging = typeof(DbContextOptionsBuilder)
-                .GetMethods()
-                .Where(m => m.Name == "EnableSensitiveDataLogging")
-                .Where(m => m.GetParameters().Length == 1).Single(p =>
-                    p.GetParameters().Select(mp => mp.ParameterType).Contains(typeof(bool)));
-
-            var useLoggerFactory = typeof(DbContextOptionsBuilder)
-                .GetMethods().Single(m => m.Name == "UseLoggerFactory");
-
-
             var ilCode = onConfiguringMethod.GetILGenerator();
             ilCode.Emit(OpCodes.Ldarg_1);
             ilCode.Emit(OpCodes.Ldstr, cString);
             ilCode.Emit(OpCodes.Ldnull);
             ilCode.Emit(OpCodes.Call, useSqlServerDatabaseMethodSignature);
-
-            ilCode.Emit(OpCodes.Ldc_I4_1);
-            ilCode.Emit(OpCodes.Call, enableSensitiveLogging);
-
-            ilCode.Emit(OpCodes.Call, useLoggerFactory);
-
             ilCode.Emit(OpCodes.Pop);
             ilCode.Emit(OpCodes.Ret);
 
