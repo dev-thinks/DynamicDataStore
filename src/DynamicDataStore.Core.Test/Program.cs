@@ -46,8 +46,7 @@ namespace DynamicDataStore.Core.Test
                 SaveLibraryRunTime = true,
                 FilterSchemas = new List<string> {"'T'", "'C'"},
                 ExtendedProperties = false,
-                ConnectionString =
-                    "Server=52.191.225.157;Database=Voltron;User ID=voltrondb;Password=voltron~adm1n;MultipleActiveResultSets=true;"
+                ConnectionString = "DB"
             };
 
             Logger.LogTrace("Building dynamic data store");
